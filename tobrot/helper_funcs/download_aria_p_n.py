@@ -79,7 +79,7 @@ async def aria_start():
     aria2_daemon_start_cmd.append(f"--rpc-listen-port={ARIA_TWO_STARTED_PORT}")
     aria2_daemon_start_cmd.append("--rpc-max-request-size=1024M")
     aria2_daemon_start_cmd.append(f"--bt-tracker={sonstringtrckr}")
-    aria2_daemon_start_cmd.append("--bt-max-peers=100")
+    aria2_daemon_start_cmd.append("--bt-max-peers=500")
     aria2_daemon_start_cmd.append("--seed-time=0")
     aria2_daemon_start_cmd.append("--max-overall-upload-limit=1K")
     aria2_daemon_start_cmd.append("--split=10")
@@ -137,10 +137,22 @@ def add_torrent(aria_instance, torrent_file_path):
     if torrent_file_path is None:
         return (
             False,
-            "**FAILED** \n"
-            + str(e)
+            "**FAILED** torrent_file_path is None \n"
             + " \nsomething wrongings when trying to add <u>TORRENT</u> file",
         )
+    if torrent_file_path.startswith("http") or torrent_file_path.startswith("https") and torrent_file_path.endswith(".torrent"):
+        #download file locally and let it continue
+        tries=3
+        while tries>0:
+            tries=tries-1
+            try:
+                response=requests.get(torrent_file_path, allow_redirects=True)
+                open(torrent_file_path.split("/")[-1], 'wb').write(response.content)
+                torrent_file_path=torrent_file_path.split("/")[-1]
+                break
+            except:
+                LOGGER.error(f"{torrent_file_path} error connection {tries} tries left")
+
     if os.path.exists(torrent_file_path):
         # Add Torrent Into Queue
         try:
